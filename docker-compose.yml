@@ -1,0 +1,49 @@
+version: "3"
+
+services:
+   db:
+      container_name: core_db
+      image: mongo
+      restart: always
+    #   environment:
+    #     MONGO_INITDB_ROOT_USERNAME: mongo_user
+    #     MONGO_INITDB_ROOT_PASSWORD: mongo_password
+      volumes: 
+        - mongodb_data:/data/db  
+      networks:
+        - servernet
+
+   server:
+        container_name: service
+        build: .
+        restart: always
+        command: gunicorn -w 4 -k uvicorn.workers.UvicornWorker server:app  --bind 0.0.0.0:8000
+        expose:
+         - 8000
+        # env_file:
+        #   - .env
+        depends_on:
+         - db
+        links:
+         - db
+     
+        networks:
+         - servernet
+
+   nginx:
+        container_name: nginx
+        build: ./nginx
+        restart: always
+        ports:
+         - 9000:80
+        depends_on:
+         - server
+        networks:
+         - servernet
+
+volumes:
+  mongodb_data:
+
+networks:
+  servernet:
+    driver: bridge
